@@ -24,7 +24,7 @@ export default function TaskForm({ task }: TaskFormProps) {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
   e.preventDefault();
 
-  const selectedAssignee = users.find((u) => u.id === assigneeId);
+  const selectedAssignee = users.find((u) => u.id == assigneeId); 
   const assigneeName = selectedAssignee ? selectedAssignee.name : "";
 
   const payload = {
@@ -32,9 +32,11 @@ export default function TaskForm({ task }: TaskFormProps) {
     description,
     status,
     deadline,
-    assigneeId: parseInt(assigneeId),  // untuk backend
+    assignee: assigneeId, // ✅ kirim langsung string UUID
     assignee_name: assigneeName,     // untuk frontend (jika backend simpan ini)
   };
+
+  console.log("Submitting payload:", payload); // 👈 debug
 
   try {
     if (task) {
