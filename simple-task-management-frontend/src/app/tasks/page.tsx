@@ -14,7 +14,8 @@ export default function TasksPage() {
   const fetchTasks = async () => {
     try {
       const res = await axios.get<Task[]>("/tasks");
-      setTasks(res.data);
+      console.log("Tasks fetched:", res.data); // 👈 Tambahkan ini untuk debug
+      setTasks(res.data ?? []); // 👈 Tambahkan fallback jika data null
     } catch (err) {
       alert("Gagal ambil task");
     }
@@ -68,40 +69,41 @@ export default function TasksPage() {
 
         {/* Task cards */}
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2">
-          {tasks.map((task) => (
-            <div
-              key={task.id}
-              className="bg-white rounded-lg shadow-md p-6 border border-blue-100 hover:shadow-lg transition"
-            >
-              <h2 className="text-xl font-semibold text-blue-800 mb-2">
-                {task.title}
-              </h2>
-              <p className="text-gray-700 mb-2">{task.description}</p>
-              <p className="text-sm text-gray-500">
-                Status: <strong>{task.status}</strong>
-              </p>
-              <p className="text-sm text-gray-500">
-                Assignee: <strong>{task.assignee_name || "-"}</strong>
-              </p>
-              <p className="text-sm text-gray-500 mb-4">
-                Deadline: {new Date(task.deadline).toLocaleDateString()}
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => router.push(`/tasks/${task.id}`)}
-                  className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => handleDelete(task.id)}
-                  className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
-                >
-                  Hapus
-                </button>
+          {Array.isArray(tasks) &&
+            tasks.map((task) => (
+              <div
+                key={task.id}
+                className="bg-white rounded-lg shadow-md p-6 border border-blue-100 hover:shadow-lg transition"
+              >
+                <h2 className="text-xl font-semibold text-blue-800 mb-2">
+                  {task.title}
+                </h2>
+                <p className="text-gray-700 mb-2">{task.description}</p>
+                <p className="text-sm text-gray-500">
+                  Status: <strong>{task.status}</strong>
+                </p>
+                <p className="text-sm text-gray-500">
+                  Assignee: <strong>{task.assignee_name || "-"}</strong>
+                </p>
+                <p className="text-sm text-gray-500 mb-4">
+                  Deadline: {new Date(task.deadline).toLocaleDateString()}
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => router.push(`/tasks/${task.id}`)}
+                    className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(task.id)}
+                    className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
+                  >
+                    Hapus
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
         </div>
 
         {tasks.length === 0 && (

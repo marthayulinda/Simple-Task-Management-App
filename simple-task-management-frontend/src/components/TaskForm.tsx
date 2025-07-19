@@ -32,7 +32,7 @@ export default function TaskForm({ task }: TaskFormProps) {
     description,
     status,
     deadline,
-    assignee: parseInt(assigneeId),  // untuk backend
+    assigneeId: parseInt(assigneeId),  // untuk backend
     assignee_name: assigneeName,     // untuk frontend (jika backend simpan ini)
   };
 
