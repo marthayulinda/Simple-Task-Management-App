@@ -13,7 +13,7 @@ export default function TaskForm({ task }: TaskFormProps) {
   const [description, setDescription] = useState(task?.description || "");
   const [status, setStatus] = useState<Task["status"]>(task?.status || "Todo");
   const [deadline, setDeadline] = useState(task?.deadline || "");
-  const [assigneeId, setAssigneeId] = useState(task?.assignee_id || "");
+  const [assigneeId, setAssigneeId] = useState(task?.assignee || "");
   const [users, setUsers] = useState<User[]>([]);
   const router = useRouter();
 
