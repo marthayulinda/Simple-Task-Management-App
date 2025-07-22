@@ -4,11 +4,14 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"simple-task-management-backend/config"
 
 	"simple-task-management-backend/handlers"
 )
 
 func main() {
+	config.InitDB()
+	
 	mux := http.NewServeMux()
 
 	// Endpoints

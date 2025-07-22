@@ -3,19 +3,42 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"simple-task-management-backend/models"
 	"strings"
 
 	"github.com/google/uuid"
+
+	"simple-task-management-backend/config"
+	"simple-task-management-backend/models"
 )
 
-var tasks []models.Task // simpan sementara di memori
-
+// ✅ Ambil semua task
 func GetTasks(w http.ResponseWriter, r *http.Request) {
+	rows, err := config.DB.Query(`
+		SELECT id, title, description, status, deadline, assignee, assignee_name
+		FROM tasks
+	`)
+	if err != nil {
+		http.Error(w, "Gagal ambil data: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var tasks []models.Task
+	for rows.Next() {
+		var task models.Task
+		err := rows.Scan(&task.ID, &task.Title, &task.Description, &task.Status, &task.Deadline, &task.Assignee, &task.AssigneeName)
+		if err != nil {
+			http.Error(w, "Gagal baca baris: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		tasks = append(tasks, task)
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(tasks)
 }
 
+// ✅ Buat task baru
 func CreateTask(w http.ResponseWriter, r *http.Request) {
 	var task models.Task
 	err := json.NewDecoder(r.Body).Decode(&task)
@@ -24,29 +47,43 @@ func CreateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Generate ID unik untuk task baru
 	task.ID = uuid.New().String()
 
-	tasks = append(tasks, task)
+	_, err = config.DB.Exec(`
+		INSERT INTO tasks (id, title, description, status, deadline, assignee, assignee_name)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+	`, task.ID, task.Title, task.Description, task.Status, task.Deadline, task.Assignee, task.AssigneeName)
+
+	if err != nil {
+		http.Error(w, "Gagal simpan task: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(task)
 }
 
+// ✅ Ambil task berdasarkan ID
 func GetTaskByID(w http.ResponseWriter, r *http.Request) {
 	id := strings.TrimPrefix(r.URL.Path, "/tasks/")
 
-	for _, task := range tasks {
-		if task.ID == id {
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(task)
-			return
-		}
+	var task models.Task
+	err := config.DB.QueryRow(`
+		SELECT id, title, description, status, deadline, assignee, assignee_name
+		FROM tasks
+		WHERE id = $1
+	`, id).Scan(&task.ID, &task.Title, &task.Description, &task.Status, &task.Deadline, &task.Assignee, &task.AssigneeName)
+
+	if err != nil {
+		http.Error(w, "Task tidak ditemukan: "+err.Error(), http.StatusNotFound)
+		return
 	}
 
-	http.Error(w, "Task tidak ditemukan", http.StatusNotFound)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(task)
 }
 
-// ✏️ Update Task berdasarkan ID
+// ✅ Update task berdasarkan ID
 func UpdateTask(w http.ResponseWriter, r *http.Request) {
 	id := strings.TrimPrefix(r.URL.Path, "/tasks/")
 
@@ -57,31 +94,36 @@ func UpdateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for i, task := range tasks {
-		if task.ID == id {
-			updatedTask.ID = id // pastikan ID tetap
-			tasks[i] = updatedTask
+	_, err = config.DB.Exec(`
+		UPDATE tasks
+		SET title = $1,
+			description = $2,
+			status = $3,
+			deadline = $4,
+			assignee = $5,
+			assignee_name = $6
+		WHERE id = $7
+	`, updatedTask.Title, updatedTask.Description, updatedTask.Status, updatedTask.Deadline, updatedTask.Assignee, updatedTask.AssigneeName, id)
 
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(updatedTask)
-			return
-		}
+	if err != nil {
+		http.Error(w, "Gagal update task: "+err.Error(), http.StatusInternalServerError)
+		return
 	}
 
-	http.Error(w, "Task tidak ditemukan", http.StatusNotFound)
+	updatedTask.ID = id
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(updatedTask)
 }
 
-// ❌ Hapus Task berdasarkan ID
+// ✅ Hapus task berdasarkan ID
 func DeleteTask(w http.ResponseWriter, r *http.Request) {
 	id := strings.TrimPrefix(r.URL.Path, "/tasks/")
 
-	for i, task := range tasks {
-		if task.ID == id {
-			tasks = append(tasks[:i], tasks[i+1:]...)
-			w.WriteHeader(http.StatusNoContent)
-			return
-		}
+	_, err := config.DB.Exec(`DELETE FROM tasks WHERE id = $1`, id)
+	if err != nil {
+		http.Error(w, "Gagal hapus task: "+err.Error(), http.StatusInternalServerError)
+		return
 	}
 
-	http.Error(w, "Task tidak ditemukan", http.StatusNotFound)
+	w.WriteHeader(http.StatusNoContent)
 }
